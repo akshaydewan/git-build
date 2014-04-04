@@ -18,7 +18,7 @@ unless distro
   $stderr.puts "Don't know what distro I'm running on -- not sure if I can build!"
 end
 
-version = "1.8.4.1"
+version = "1.9.1"
 release = ENV['GO_PIPELINE_COUNTER'] || ENV['RELEASE'] || 1
 name = "git-#{version}"
 
@@ -42,17 +42,13 @@ end
 
 task :download do
   cd 'downloads' do
-    sh("curl --fail http://git-core.googlecode.com/files/git-#{version}.tar.gz             > git-#{version}.tar.gz 2>/dev/null")
-
-    sh("echo '49004a8dfcbb7c0848147737d9877fd7313a42ec  git-#{version}.tar.gz'             > git-#{version}.tar.gz.shasum 2>/dev/null")
-
-    sh("sha1sum --status --check git-#{version}.tar.gz.shasum")
+    sh("git clone --mirror --quiet https://github.com/git/git git-#{version}")
+    sh("git co v1.9.1")
   end
 end
 
 task :configure do
   cd "src" do
-    sh "tar -zxf ../downloads/git-#{version}.tar.gz"
     cd "git-#{version}" do
       sh "./configure --prefix=/opt/local/git/#{version} > #{File.dirname(__FILE__)}/log/configure.#{version}.log 2>&1"
     end
@@ -130,34 +126,6 @@ task :dist do
            bundle exec fpm -s dir -t #{distro} --name git-#{version} -a x86_64 --version "#{version}" -C #{jailed_root} --verbose #{fpm_opts} --maintainer snap-ci@thoughtworks.com --vendor snap-ci@thoughtworks.com --url http://snap-ci.com --description "#{description_string}" --iteration #{release} --license 'GPLv2' .
       })
     end
-  end
-end
-
-desc "deploy the rpm to s3"
-task :deploy do
-  File.open('s3.cfg', 'w') do |f|
-    f.puts "[default]"
-    f.puts "access_key = #{ENV['S3_ACCESS_KEY']}"
-    f.puts "secret_key = #{ENV['S3_SECRET_KEY']}"
-  end
-
-  repo_dir = if ENV['GO_SERVER_URL'] || ENV['CI']
-    File.expand_path('~/.git-build-repo')
-  else
-    rm_rf   repo_dir
-    File.expand_path('../repo', __FILE__)
-  end
-
-  mkdir_p repo_dir
-
-  oldpwd = Dir.pwd
-  cd repo_dir do
-    sh("s3cmd mb --config #{oldpwd}/s3.cfg s3://#{ENV['S3_BUCKET']}")
-    sh("s3cmd sync --config #{oldpwd}/s3.cfg --verbose --acl-public --delete-removed --no-preserve s3://#{ENV['S3_BUCKET']} .")
-    sh("cp #{oldpwd}/pkg/*.rpm ./rpms/")
-
-    sh("createrepo --database --update . || createrepo --database .")
-    sh("s3cmd sync --config #{oldpwd}/s3.cfg --verbose --acl-public --delete-removed --no-preserve . s3://#{ENV['S3_BUCKET']}")
   end
 end
 
