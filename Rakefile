@@ -30,26 +30,27 @@ CLEAN.include("downloads")
 CLEAN.include("jailed-root")
 CLEAN.include("log")
 CLEAN.include("pkg")
-CLEAN.include("src")
 
 task :init do
   mkdir_p "log"
   mkdir_p "pkg"
-  mkdir_p "src"
   mkdir_p "downloads"
   mkdir_p "jailed-root"
 end
 
 task :download do
   cd 'downloads' do
-    sh("git clone --mirror --quiet https://github.com/git/git git-#{version}")
-    sh("git co v1.9.1")
+    sh("git clone --quiet https://github.com/git/git git-#{version}")
+    cd ("git-#{version}") do
+      sh("git checkout v#{version}")
+    end
   end
 end
 
 task :configure do
-  cd "src" do
+  cd "downloads" do
     cd "git-#{version}" do
+      sh('make configure')
       sh "./configure --prefix=/opt/local/git/#{version} > #{File.dirname(__FILE__)}/log/configure.#{version}.log 2>&1"
     end
   end
@@ -59,7 +60,7 @@ task :make do
   num_processors = %x[nproc].chomp.to_i
   num_jobs       = num_processors + 1
 
-  cd "src/git-#{version}" do
+  cd "downloads/git-#{version}" do
     sh("make -j#{num_jobs} > #{File.dirname(__FILE__)}/log/make.#{version}.log 2>&1")
   end
 end
@@ -67,7 +68,7 @@ end
 task :make_install do
   rm_rf  jailed_root
   mkdir_p jailed_root
-  cd "src/git-#{version}" do
+  cd "downloads/git-#{version}" do
     sh("make install DESTDIR=#{jailed_root} > #{File.dirname(__FILE__)}/log/make-install.#{version}.log 2>&1")
   end
 end
