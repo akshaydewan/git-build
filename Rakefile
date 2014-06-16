@@ -19,7 +19,7 @@ unless distro
 end
 
 version = "1.9.1"
-release = ENV['GO_PIPELINE_COUNTER'] || ENV['RELEASE'] || 1
+release = Time.now.utc.strftime('%Y%m%d%H%M%S')
 name = "git-#{version}"
 
 description_string = %Q{Git is a fast, scalable, distributed revision control system with an unusually rich command set that provides both high-level operations and full access to internals.}
