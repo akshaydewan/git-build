@@ -1,4 +1,6 @@
-This repo contains scripts needed to build deb and rpms for various versions of git
+[![Build Status](https://snap-ci.com/snap-ci/git-build/branch/master/build_image)](https://snap-ci.com/snap-ci/git-build/branch/master)
+
+This repo contains scripts needed to build deb and rpms for various versions of git. To report an issue, [please contact the Snap.ci support team.](https://snap-ci.com/contact-us)
 
 # CentOS/RHEL
 
