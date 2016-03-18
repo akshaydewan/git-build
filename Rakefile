@@ -18,7 +18,7 @@ unless distro
   $stderr.puts "Don't know what distro I'm running on -- not sure if I can build!"
 end
 
-version = "2.7.0"
+version = "2.7.4"
 release = Time.now.utc.strftime('%Y%m%d%H%M%S')
 name = "git-#{version}"
 
