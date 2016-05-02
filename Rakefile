@@ -61,7 +61,7 @@ task :make do
   num_jobs       = num_processors + 1
 
   cd "downloads/git-#{version}" do
-    sh("make -j#{num_jobs} > #{File.dirname(__FILE__)}/log/make.#{version}.log 2>&1")
+    sh("make -j#{num_jobs} -i > #{File.dirname(__FILE__)}/log/make.#{version}.log 2>&1")
   end
 end
 

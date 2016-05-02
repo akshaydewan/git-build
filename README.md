@@ -11,6 +11,7 @@ $ bundle install --path .bundle
 
 <pre>
 $ apt-get install build-essentials dpkg-dev
+$ apt-get install gettext
 $ bundle install --path .bundle
 </pre>
 
