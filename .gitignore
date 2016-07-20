@@ -5,3 +5,4 @@
 /jailed-root/
 /log/
 Gemfile.lock
+.tags
