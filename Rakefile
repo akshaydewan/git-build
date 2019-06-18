@@ -18,18 +18,20 @@ unless distro
   $stderr.puts "Don't know what distro I'm running on -- not sure if I can build!"
 end
 
-version = "2.8.0"
+versions = ["2.21.0", "2.20.1", "2.19.2", "2.18.1", "2.17.2", "2.16.5", "2.15.3", "2.14.5", "2.13.7", "2.12.5", "2.11.4", "2.10.5", "2.9.5",
+            "2.8.6", "2.7.6", "2.6.7", "2.5.6", "2.4.9", "2.3.9", "2.2.3", "2.1.4", "2.0.5", "1.9.5"]
+#versions = ["2.9.5", "2.8.6", "2.7.6", "2.6.7", "2.5.6", "2.4.9", "2.3.9", "2.2.3", "2.1.4", "2.0.5", "1.9.5"]
 release = Time.now.utc.strftime('%Y%m%d%H%M%S')
-name = "git-#{version}"
+#name = "git-#{version}"
 
 description_string = %Q{Git is a fast, scalable, distributed revision control system with an unusually rich command set that provides both high-level operations and full access to internals.}
 
 jailed_root = File.expand_path('../jailed-root', __FILE__)
 
-CLEAN.include("downloads")
+#CLEAN.include("downloads")
 CLEAN.include("jailed-root")
 CLEAN.include("log")
-CLEAN.include("pkg")
+#CLEAN.include("pkg")
 
 task :init do
   mkdir_p "log"
@@ -38,43 +40,49 @@ task :init do
   mkdir_p "jailed-root"
 end
 
-task :download do
+task :download, [:version] do |t, args|
+  version = args.version
   cd 'downloads' do
-    sh("git clone --quiet https://github.com/git/git git-#{version}")
-    cd ("git-#{version}") do
+    #sh("git clone --quiet https://github.com/git/git git-#{version}")
+    cd ("git") do
       sh("git checkout v#{version}")
+      sh("git clean -dffx")
     end
   end
 end
 
-task :configure do
+task :configure, [:version] do |t, args|
+  version = args.version
   cd "downloads" do
-    cd "git-#{version}" do
+    cd "git" do
       sh('make configure')
       sh "./configure --prefix=/opt/local/git/#{version} > #{File.dirname(__FILE__)}/log/configure.#{version}.log 2>&1"
     end
   end
 end
 
-task :make do
+task :make, [:version] do |t, args|
+  version = args.version
   num_processors = %x[nproc].chomp.to_i
   num_jobs       = num_processors + 1
 
-  cd "downloads/git-#{version}" do
+  cd "downloads/git" do
     sh("make -j#{num_jobs} -i > #{File.dirname(__FILE__)}/log/make.#{version}.log 2>&1")
   end
 end
 
-task :make_install do
+task :make_install, [:version] do |t, args|
+  version = args.version
   rm_rf  jailed_root
   mkdir_p jailed_root
-  cd "downloads/git-#{version}" do
+  cd "downloads/git" do
     sh("make install DESTDIR=#{jailed_root} > #{File.dirname(__FILE__)}/log/make-install.#{version}.log 2>&1")
   end
 end
 
 
-task :dist do
+task :dist, [:version] do |t, args|
+  version = args.version
   require 'erb'
   class RpmSpec
     attr_accessor :version, :release
@@ -130,5 +138,21 @@ task :dist do
   end
 end
 
+task :build_all_versions do
+  versions.each do |version|
+    Rake::Task[:download].invoke(version)
+    Rake::Task[:configure].invoke(version)
+    Rake::Task[:make].invoke(version)
+    Rake::Task[:make_install].invoke(version)
+    Rake::Task[:dist].invoke(version)  
+    puts "Completed building for version #{version}"
+    Rake::Task[:download].reenable
+    Rake::Task[:configure].reenable
+    Rake::Task[:make].reenable
+    Rake::Task[:make_install].reenable
+    Rake::Task[:dist].reenable
+  end
+end
+
 desc "build git rpm"
-task :default => [:clean, :init, :download, :configure, :make, :make_install, :dist]
+task :default => [:clean, :init, :build_all_versions]
